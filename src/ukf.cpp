@@ -52,6 +52,27 @@ UKF::UKF() {
 
   Hint: one or more values initialized above might be wildly off...
   */
+
+  // predicted sigma points matrix
+  Xsig_pred_ = MatrixXd(15, 5);
+
+  // time when the state is true, in us
+  time_us_ = 0.0;
+
+  // state dimension
+  n_x_ = 5; 
+
+  // Augmented state dimension
+  n_aug_ = 7;
+
+  // Sigma point spreading parameter
+  lambda_ = 3 - n_aug_;
+
+  // the current NIS for radar
+  NIS_radar_ = 0.0;
+
+  // the current NIS for laser
+  NIS_laser_ = 0.0;
 }
 
 UKF::~UKF() {}
