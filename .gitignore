@@ -3,3 +3,6 @@
 
 # build files
 build/
+
+# vscode junk
+.vscode/
