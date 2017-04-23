@@ -25,10 +25,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 30;
+  std_a_ = 2;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 30;
+  std_yawdd_ = 0.3;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -136,6 +136,7 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
 
     // done initializing, no need to predict or update
     is_initialized_ = true;
+
     return;
   }
 
@@ -153,14 +154,14 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
    *  Update 
    ****************************************************************************/
 
-   if (meas_package.sensor_type_ == MeasurementPackage::LASER)
-   {
-     UpdateLidar(meas_package);
-   }
-   else if (meas_package.sensor_type_ == MeasurementPackage::RADAR)
-   {
-     UpdateRadar(meas_package);
-   }
+  if (meas_package.sensor_type_ == MeasurementPackage::LASER)
+  {
+    UpdateLidar(meas_package);
+  }
+  else if (meas_package.sensor_type_ == MeasurementPackage::RADAR)
+  {
+    UpdateRadar(meas_package);
+  }
 
 }
 
@@ -375,7 +376,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   MatrixXd Tc = MatrixXd(n_x_, n_z);
 
   /*****************************************************************************
-  *  UKF Update for Radar
+  *  UKF Update for Lidar
   ****************************************************************************/
   //calculate cross correlation matrix
   Tc.fill(0.0);
@@ -395,6 +396,9 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 
   //residual
   VectorXd z_diff = z - z_pred;
+
+  //calculate NIS
+  NIS_laser_ = z_diff.transpose() * S.inverse() * z_diff;
 
   //update state mean and covariance matrix
   x_ = x_ + K * z_diff;
@@ -505,6 +509,9 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
   //angle normalization
   while (z_diff(1)> M_PI) z_diff(1) -= 2.*M_PI;
   while (z_diff(1)<-M_PI) z_diff(1) += 2.*M_PI;
+
+  //calculate NIS
+  NIS_radar_ = z_diff.transpose() * S.inverse() * z_diff;
 
   //update state mean and covariance matrix
   x_ = x_ + K * z_diff;
