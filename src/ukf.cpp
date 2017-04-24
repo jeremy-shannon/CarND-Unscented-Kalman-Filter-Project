@@ -55,14 +55,8 @@ UKF::UKF() {
   // initially set to false, set to true in first call of ProcessMeasurement
   is_initialized_ = false;
 
-  // predicted sigma points matrix
-  Xsig_pred_ = MatrixXd(15, 5);
-
   // time when the state is true, in us
   time_us_ = 0.0;
-
-  //create vector for weights
-  weights_ = VectorXd(2 * n_aug_ + 1);
 
   // state dimension
   n_x_ = 5; 
@@ -71,7 +65,13 @@ UKF::UKF() {
   n_aug_ = 7;
 
   // Sigma point spreading parameter
-  lambda_ = 3 - n_aug_;
+  lambda_ = 3 - n_x_;
+
+  // predicted sigma points matrix
+  Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
+
+  //create vector for weights
+  weights_ = VectorXd(2 * n_aug_ + 1);
 
   // the current NIS for radar
   NIS_radar_ = 0.0;
@@ -187,13 +187,16 @@ void UKF::Prediction(double delta_t) {
   //calculate square root of P
   MatrixXd A = P_.llt().matrixL();
 
+  //set lambda for non-augmented sigma points
+  lambda_ = 3 - n_x_;
+
   //set first column of sigma point matrix
   Xsig.col(0) = x_;
 
   //set remaining sigma points
   for (int i = 0; i < n_x_; i++)
   {
-    Xsig.col(i + 1) = x_ + sqrt(lambda_ + n_x_) * A.col(i);
+    Xsig.col(i + 1)        = x_ + sqrt(lambda_ + n_x_) * A.col(i);
     Xsig.col(i + 1 + n_x_) = x_ - sqrt(lambda_ + n_x_) * A.col(i);
   }
 
@@ -201,13 +204,16 @@ void UKF::Prediction(double delta_t) {
   *  Augment Sigma Points
   ****************************************************************************/
   //create augmented mean vector
-  VectorXd x_aug = VectorXd(7);
+  VectorXd x_aug = VectorXd(n_aug_);
 
   //create augmented state covariance
-  MatrixXd P_aug = MatrixXd(7, 7);
+  MatrixXd P_aug = MatrixXd(n_aug_, n_aug_);
 
   //create sigma point matrix
   MatrixXd Xsig_aug = MatrixXd(n_aug_, 2 * n_aug_ + 1);
+
+  //set lambda for augmented sigma points
+  lambda_ = 3 - n_aug_;
 
   //create augmented mean state
   x_aug.head(5) = x_;
@@ -235,15 +241,15 @@ void UKF::Prediction(double delta_t) {
   *  Predict Sigma Points
   ****************************************************************************/
   //predict sigma points
-  for (int i = 0; i< 2 * n_aug_ + 1; i++)
+  for (int i = 0; i < 2 * n_aug_ + 1; i++)
   {
     //extract values for better readability
-    double p_x = Xsig_aug(0, i);
-    double p_y = Xsig_aug(1, i);
-    double v = Xsig_aug(2, i);
-    double yaw = Xsig_aug(3, i);
-    double yawd = Xsig_aug(4, i);
-    double nu_a = Xsig_aug(5, i);
+    double p_x      = Xsig_aug(0, i);
+    double p_y      = Xsig_aug(1, i);
+    double v        = Xsig_aug(2, i);
+    double yaw      = Xsig_aug(3, i);
+    double yawd     = Xsig_aug(4, i);
+    double nu_a     = Xsig_aug(5, i);
     double nu_yawdd = Xsig_aug(6, i);
 
     //predicted state values
@@ -251,21 +257,21 @@ void UKF::Prediction(double delta_t) {
 
     //avoid division by zero
     if (fabs(yawd) > 0.001) {
-      px_p = p_x + v / yawd * (sin(yaw + yawd*delta_t) - sin(yaw));
-      py_p = p_y + v / yawd * (cos(yaw) - cos(yaw + yawd*delta_t));
+      px_p = p_x + v / yawd * (sin(yaw + yawd * delta_t) - sin(yaw));
+      py_p = p_y + v / yawd * (cos(yaw) - cos(yaw + yawd * delta_t));
     }
     else {
-      px_p = p_x + v*delta_t*cos(yaw);
-      py_p = p_y + v*delta_t*sin(yaw);
+      px_p = p_x + v * delta_t * cos(yaw);
+      py_p = p_y + v * delta_t * sin(yaw);
     }
 
-    double v_p = v;
-    double yaw_p = yaw + yawd*delta_t;
+    double v_p    = v;
+    double yaw_p  = yaw + yawd * delta_t;
     double yawd_p = yawd;
 
     //add noise
-    px_p = px_p + 0.5*nu_a*delta_t*delta_t * cos(yaw);
-    py_p = py_p + 0.5*nu_a*delta_t*delta_t * sin(yaw);
+    px_p = px_p + 0.5 * nu_a * delta_t * delta_t * cos(yaw);
+    py_p = py_p + 0.5 * nu_a * delta_t * delta_t * sin(yaw);
     v_p = v_p + nu_a*delta_t;
 
     yaw_p = yaw_p + 0.5*nu_yawdd*delta_t*delta_t;
@@ -286,19 +292,19 @@ void UKF::Prediction(double delta_t) {
   // set weights
   double weight_0 = lambda_ / (lambda_ + n_aug_);
   weights_(0) = weight_0;
-  for (int i = 1; i<2 * n_aug_ + 1; i++) {  //2n+1 weights
+  for (int i = 1; i < 2 * n_aug_ + 1; i++) {  //2n+1 weights
     double weight = 0.5 / (n_aug_ + lambda_);
     weights_(i) = weight;
   }
 
   //predicted state mean
-  x_.fill(0.0);
+  //x_.fill(0.0);             ******* necessary? *********
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
     x_ = x_ + weights_(i) * Xsig_pred_.col(i);
   }
 
   //predicted state covariance matrix
-  P_.fill(0.0);
+  //P_.fill(0.0);             ******* necessary? *********
   for (int i = 0; i < 2 * n_aug_ + 1; i++) {  //iterate over sigma points
 
     // state difference
