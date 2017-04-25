@@ -47,11 +47,10 @@ UKF::UKF() {
 
   /**
   TODO:
-
   Complete the initialization. See ukf.h for other member properties.
-
   Hint: one or more values initialized above might be wildly off...
   */
+
   // initially set to false, set to true in first call of ProcessMeasurement
   is_initialized_ = false;
 
@@ -116,11 +115,11 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       x_(1) = meas_package.raw_measurements_(1);
 
       // init covariance matrix
-      P_ << 0.15, 0, 0, 0, 0,
-        0, 0.15, 0, 0, 0,
-        0, 0, 1, 0, 0,
-        0, 0, 0, 1, 0,
-        0, 0, 0, 0, 1;
+      P_ << 0.15,    0, 0, 0, 0,
+               0, 0.15, 0, 0, 0,
+               0,    0, 1, 0, 0,
+               0,    0, 0, 1, 0,
+               0,    0, 0, 0, 1;
 
       // init timestamp
       time_us_ = meas_package.timestamp_;
@@ -143,11 +142,11 @@ void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
       x_(1) = ro     * sin(phi);
 
       // init covariance matrix
-      P_ << 0.15, 0, 0, 0, 0,
-        0, 0.15, 0, 0, 0,
-        0, 0, 1, 0, 0,
-        0, 0, 0, 1, 0,
-        0, 0, 0, 0, 1;
+      P_ << 0.15,    0, 0, 0, 0,
+               0, 0.15, 0, 0, 0,
+               0,    0, 1, 0, 0,
+               0,    0, 0, 1, 0,
+               0,    0, 0, 0, 1;
 
       // init timestamp
       time_us_ = meas_package.timestamp_;
@@ -263,12 +262,12 @@ void UKF::Prediction(double delta_t) {
   for (int i = 0; i < 2 * n_aug_ + 1; i++)
   {
     //extract values for better readability
-    double p_x = Xsig_aug(0, i);
-    double p_y = Xsig_aug(1, i);
-    double v = Xsig_aug(2, i);
-    double yaw = Xsig_aug(3, i);
-    double yawd = Xsig_aug(4, i);
-    double nu_a = Xsig_aug(5, i);
+    double p_x      = Xsig_aug(0, i);
+    double p_y      = Xsig_aug(1, i);
+    double v        = Xsig_aug(2, i);
+    double yaw      = Xsig_aug(3, i);
+    double yawd     = Xsig_aug(4, i);
+    double nu_a     = Xsig_aug(5, i);
     double nu_yawdd = Xsig_aug(6, i);
 
     //predicted state values
@@ -344,10 +343,8 @@ void UKF::Prediction(double delta_t) {
 void UKF::UpdateLidar(MeasurementPackage meas_package) {
   /**
   TODO:
-
   Complete this function! Use lidar data to update the belief about the object's
   position. Modify the state vector, x_, and covariance, P_.
-
   You'll also need to calculate the lidar NIS.
   */
 
@@ -393,7 +390,7 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
   //add measurement noise covariance matrix
   MatrixXd R = MatrixXd(n_z, n_z);
   R << std_laspx_*std_laspx_, 0,
-    0, std_laspy_*std_laspy_;
+       0, std_laspy_*std_laspy_;
   S = S + R;
 
   //create matrix for cross correlation Tc
@@ -459,7 +456,7 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
     // extract values for better readibility
     double p_x = Xsig_pred_(0, i);
     double p_y = Xsig_pred_(1, i);
-    double v = Xsig_pred_(2, i);
+    double v   = Xsig_pred_(2, i);
     double yaw = Xsig_pred_(3, i);
 
     double v1 = cos(yaw)*v;
@@ -494,9 +491,9 @@ void UKF::UpdateRadar(MeasurementPackage meas_package) {
 
   //add measurement noise covariance matrix
   MatrixXd R = MatrixXd(n_z, n_z);
-  R << std_radr_*std_radr_, 0, 0,
-    0, std_radphi_*std_radphi_, 0,
-    0, 0, std_radrd_*std_radrd_;
+  R << std_radr_*std_radr_,                       0,                     0,
+                         0, std_radphi_*std_radphi_,                     0,
+                         0,                       0, std_radrd_*std_radrd_;
   S = S + R;
 
   //create matrix for cross correlation Tc
